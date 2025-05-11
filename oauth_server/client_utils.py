@@ -7,12 +7,8 @@ import hashlib
 CREDENTIALS_PATH = 'service_account_credentials.json'
 
 # return auth url, state
-def get_google_auth_url(esk, epk, blinding):
+def get_google_auth_url(nonce):
     
-    # create nonce combining epk and blinding
-    combined = str(epk) + str(blinding)
-    nonce = hashlib.sha256(combined.encode()).hexdigest()
-
     try:
         # Create a flow instance
         flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(CREDENTIALS_PATH,
@@ -33,4 +29,4 @@ def get_google_auth_url(esk, epk, blinding):
         return None, None 
 
 if __name__ == '__main__':
-    print(get_google_auth_url())
+    print(get_google_auth_url('kqwVXqARZ4zrbkKK1Eh8R90YqXrklgWBoBuYyRfYFUY'))
