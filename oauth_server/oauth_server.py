@@ -54,7 +54,7 @@ def oauth2callback():
             print(f"Error decoding JWT: {str(e)}")
 
         session["jwt"] = credentials.id_token
-        session["user"] = decoded_jwt["email"]
+        session["user"] = decoded_jwt["sub"]
         session["aud"] = decoded_jwt["aud"]
 
         # send stuff to pepper with zk
@@ -108,7 +108,9 @@ def pepper():
     mod = pepper_consts['mod']
     u = session["u"]
     pepper = request.args.get('pepper')
-    session["pepper"] = int(pepper) * fpow(fpow(vpk, mod - 2, mod), u, mod) % mod
+    pepper = int(pepper) * fpow(fpow(vpk, mod - 2, mod), u, mod) % mod
+    hashed_pepper = hashlib.sha256(str(pepper).encode()).hexdigest()
+    session["pepper"] = hashed_pepper 
     email_aud_pepper = session["user"] + session["aud"] + str(session["pepper"])
     session["addr"] = hashlib.sha256(email_aud_pepper.encode()).hexdigest()
     return redirect('/home')
@@ -124,6 +126,8 @@ def home():
             <h2>Welcome {}</h2>
             <div style="margin: 20px 0;">
                 <h3>Your Session Information:</h3>
+                <p><strong>Nonce:</strong> {}</p>
+                <p><strong>JWT:</strong> {}</p>
                 <p><strong>Ephemeral Public Key:</strong> {}</p>
                 <p><strong>Ephemeral Secret Key:</strong> {}</p>
                 <p><strong>Ephemeral Blinding Key:</strong> {}</p>
@@ -152,7 +156,7 @@ def home():
             </form>
         </body>
     </html>
-    """.format(session["user"], session.get("eph_pk", "Not available"), session.get("eph_sk", "Not available"), session.get("eph_rand", "Not available"), session.get("pepper", "Not available"), session.get("addr", "Not available"))
+    """.format(session["user"], session.get("nonce", "Not available"), session.get("jwt", "Not available"), session.get("eph_pk", "Not available"), session.get("eph_sk", "Not available"), session.get("eph_rand", "Not available"), session.get("pepper", "Not available"), session.get("addr", "Not available"))
 
 @app.route('/')
 def main_page():
@@ -180,6 +184,7 @@ def main_page():
     session["eph_pk"] = eph_pk
     session["eph_sk"] = eph_sk
     session["eph_rand"] = eph_rand
+    session["nonce"] = nonce
 
     auth_url, state = get_google_auth_url(nonce)
 
